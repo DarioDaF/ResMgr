@@ -14,6 +14,8 @@ This project provides an easy definition of **`defer`** in C++11 style using lam
 
 > A line of code is worth a milion descriptions
 
+If you want just the function summary for this simple class look at the end!
+
 With this in mind let's see this library in action.
 
 ```C++
@@ -79,9 +81,73 @@ class A {
 
 Now if an exceptions occours in the constructor and that expetion is catched no memory leaks occour!
 
-# Extra functions
+# Cascading managers
 
-C++ users want controll, for this purpose two extra funciton are available:
+What if I need to revert some changes but keep the main manager alive?
+
+```C++
+ResMgr glob_mgr;
+
+/* Stuff with glob_mgr */
+
+ResMgr* sub_mgr = new ResMgr();
+glob_mgr.Defer([&sub_mgr] {
+  if(sub_mgr != nullptr) {
+    sub_mgr->Clear(); // Empty the manager
+    delete sub_mgr;
+    sub_mgr = nullptr;
+  }
+});
+
+/* Do stuff with sub_mgr */
+
+sub_mgr->Clear(); // Revert sub changes
+
+/* Here sub_mgr exists so you can use it to try again the change, but remember that the order of destruction cannot be changed anymore! */
+```
+
+# Safe class constructor is good, but I need my deletion logic...
+
+No problem, C++ users want controll, so an extra function for this is being providen:
+
+```C++
+class A {
+  private:
+    EXT_HANDLE h = nullptr;
+  public:
+    A(bool do_throw) {
+      ResMgr _rmgr; // Temporary resource manager to handle construction exceptions
+      
+      this->h = CreateExternalResource();
+      if(this->h == nullptr) {
+        cerr << "Cannot create external resource\n";
+        throw A_Exception("External resource acquisition failed"); // Abort constructor
+      }
+      _rmgr.Defer([this] {
+        DestroyExternalResource(this->h);
+        this->h = nullptr;
+      }); // Delegate resource destruction to rmgr
+
+      if(do_throw) {
+        throw A_Exception("Throw requested"); // Abort constructor
+      }
+      
+      _rmgr.Release(); // Release manager control, now all the resources are again fully under your control
+      // So at the end of the constructor _rmgr destruction has no side effects
+    }
+    virtual ~A() {
+      /* Do your destruction logic without fearing double frees! */
+      DestroyExternalResource(this->h);
+    }
+};
+```
+
+# Function summary
+
+- `rmgr.Defer(std::function<void (void)>);`\
+Adds a functional (function pointer with context informations for captures) to be defered at destruction.
+- `rmgr.Swap(ResMgr&);`\
+Swaps content between resource managers (uses pointer swaps for optimization).
 - `rmgr.Clear();`\
 executes all deferred actions added leaving `rmgr` empty.
 - `rmgr.Release();`\
