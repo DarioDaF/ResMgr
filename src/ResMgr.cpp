@@ -2,6 +2,8 @@
 
   ResMgr (c) by Dario Fagotto
   under CC BY 4.0 license (see LICENSE.md)
+  Version 1.1:
+    Swap replaced by move assignment/construction
   Version 1.0:
     Basic version with Swap capabilities
 
@@ -15,8 +17,11 @@ void ResMgr::Defer(deferred_f d) {
 
 ResMgr::ResMgr() {}
 
-void ResMgr::Swap(ResMgr& rmgr) {
-  this->fs.swap(rmgr.getInternalStack());
+ResMgr::ResMgr(ResMgr&& other) : fs(std::move(other.fs)) {}
+
+ResMgr& ResMgr::operator=(ResMgr&& other) {
+  this->fs = std::move(other.fs);
+  return *this;
 }
 
 void ResMgr::Clear() {

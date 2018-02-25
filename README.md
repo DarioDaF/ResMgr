@@ -73,7 +73,7 @@ class A {
         throw A_Exception("Throw requested"); // Abort constructor
       }
       
-      this->rmgr.Swap(_rmgr); // Handle resorces to internal manager leaving _rmgr empty
+      this->rmgr = std::move(_rmgr); // Handle resorces to internal manager leaving _rmgr empty
       // So at the end of the constructor _rmgr destruction has no side effects
     }
 };
@@ -90,7 +90,7 @@ ResMgr glob_mgr;
 
 /* Stuff with glob_mgr */
 
-ResMgr* sub_mgr = new ResMgr();
+ResMgr* sub_mgr = new ResMgr(); // Dynamicly allocated because it can be deleted before glob_mgr!
 glob_mgr.Defer([&sub_mgr] {
   if(sub_mgr != nullptr) {
     sub_mgr->Clear(); // Empty the manager
@@ -146,9 +146,9 @@ class A {
 
 - `rmgr.Defer(std::function<void (void)>);`\
 Adds a functional (function pointer with context informations for captures) to be defered at destruction.
-- `rmgr.Swap(ResMgr&);`\
-Swaps content between resource managers (uses pointer swaps for optimization).
 - `rmgr.Clear();`\
 executes all deferred actions added leaving `rmgr` empty.
 - `rmgr.Release();`\
 release all the deferred actions without executing them (*DANGEROUS* but might be useful in the right hands).
+
+The object is not copiable but can be `std::move`d!
