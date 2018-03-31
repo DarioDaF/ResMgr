@@ -19,7 +19,7 @@ If you want just the function summary for this simple class look at the end!
 With this in mind let's see this library in action.
 
 ```C++
-RegMgr rmgr; // Declare staticly the resource manager
+ResMgr rmgr; // Declare staticly the resource manager
 
 EXT_HANDLE h = CreateExternalResource(); // External C library resource
 if(h == nullptr) {
